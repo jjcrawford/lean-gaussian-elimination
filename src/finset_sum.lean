@@ -1,8 +1,4 @@
 import data.finsupp
-import data.set.basic
-import data.set
-import data.fintype
-
 
 universes u v
 variable (α : Type u)

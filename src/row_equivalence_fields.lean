@@ -2,7 +2,7 @@ import ring_theory.matrix
 import row_equivalence
 import .finset_sum
 
-universes u v
+universes u
 variables {m n : ℕ}
 variable {α : Type u}
 variable [division_ring α]
@@ -81,13 +81,6 @@ begin
     from H₁
 end
 
-theorem inv_matrix_implements : Π {M N : matrix (fin m) (fin n) α} {e : elementary α m}, matrix.mul (elementary.to_matrix e) M = N → M = matrix.mul (elementary.to_matrix e⁻¹) N :=
-begin
-    intros M N e,
-    simp[elementary.mul_eq_apply],
-    apply elementary.inv_apply_implements,
-end
-
 theorem elementary.inv_matrix_implements_iff_matrix_implements : Π {M N : matrix (fin m) (fin n) α} {e : elementary α m}, matrix.mul (elementary.to_matrix e) M = N ↔ M = matrix.mul (elementary.to_matrix e⁻¹) N :=
 begin
     intros M N e,
@@ -95,14 +88,17 @@ begin
     apply elementary.inv_apply_implements_iff_apply_implements,
 end
 
-def row_equivalent_step.symm : Π {M N : matrix (fin m) (fin n) α} (r : row_equivalent_step M N), row_equivalent_step N M := begin
-    intros,
+theorem inv_matrix_implements : Π {M N : matrix (fin m) (fin n) α} {e : elementary α m}, matrix.mul (elementary.to_matrix e) M = N → M = matrix.mul (elementary.to_matrix e⁻¹) N := λ M N e, iff.elim_left elementary.inv_matrix_implements_iff_matrix_implements
+
+
+def row_equivalent_step.symm : Π {M N : matrix (fin m) (fin n) α}, row_equivalent_step M N → row_equivalent_step N M := begin
+    intros M N r,
     cases r with elem implements,
     constructor,
     from eq.symm (inv_matrix_implements implements),
 end
 
-def row_equivalent.symm : Π {M N : matrix (fin m) (fin n) α} (r : row_equivalent M N), row_equivalent N M
+def row_equivalent.symm : Π {M N : matrix (fin m) (fin n) α}, row_equivalent M N → row_equivalent N M
 | M N (row_equivalent.nil) := row_equivalent.nil
-| M N (@row_equivalent.cons _ _ _ _ _ _ L _ r₁ r₂) := r₁.symm.precons r₂.symm
+| M N (row_equivalent.cons r₁ r₂) := r₁.symm.precons r₂.symm
 

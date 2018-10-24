@@ -1,9 +1,8 @@
 import ring_theory.matrix
 import .finset_sum
 
-open relation
 
-universes u v
+universes u
 variables {m n : ℕ}
 variable (α : Type u)
 variable [ring α]
