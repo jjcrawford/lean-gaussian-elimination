@@ -1,6 +1,5 @@
 import ring_theory.matrix
 import .row_equivalence
-import .row_equivalence_fields
 
 universes u
 variables {m n : ℕ}
@@ -73,7 +72,7 @@ end
     from row_equivalent.nil,
 end
 
-set_option pp.proofs true
+-- set_option pp.proofs true
 
 lemma ge_aux_improvepivot_row_equivalent : Π (i₀ : fin m) (j₀ : fin n) (M : matrix (fin m) (fin n) α), row_equivalent M (ge_aux_improvepivot i₀ j₀ M)
 | i₀ j₀ M := 
@@ -117,14 +116,14 @@ begin
 end
 
 -- TODO: Why does bytecode generation fail?
-def row_reduction_step.to_row_equivalent : Π {j : fin n} {i : fin m} {M N :  matrix (fin m) (fin n) α} (r : row_reduction_step i j M N), row_equivalent M N :=
-begin
-    intros _ _ _ _ r,
-    induction r with i j M i₀ i j M i j M i₀ h,
-    from @ge_aux_findpivot_row_equivalent m n α _ _ i₀ i j M,
-    from @ge_aux_improvepivot_row_equivalent m n α _ _ i j M,
-    from @ge_aux_eliminate_row_equivalent m n α _ _ i₀ i j M h,
-end
+-- def row_reduction_step.to_row_equivalent : Π {j : fin n} {i : fin m} {M N :  matrix (fin m) (fin n) α} (r : row_reduction_step i j M N), row_equivalent M N :=
+-- begin
+--     intros _ _ _ _ r,
+--     induction r with i j M i₀ i j M i j M i₀ h,
+--     from @ge_aux_findpivot_row_equivalent m n α _ _ i₀ i j M,
+--     from @ge_aux_improvepivot_row_equivalent m n α _ _ i j M,
+--     from @ge_aux_eliminate_row_equivalent m n α _ _ i₀ i j M h,
+-- end
 
 -- Note that bytecode generation fails even more seriously here! (Because they choose a red underline?)
 -- def to_row_equivalent : Π {j : fin n} {i : fin m} {M N :  matrix (fin m) (fin n) α} (r : row_reduction_step i j M N), row_equivalent M N
@@ -133,7 +132,7 @@ end
 -- | _ _ _ _ (eliminate i j M i₀ h) := @ge_aux_eliminate_row_equivalent m n α _ _ i₀ i j M h
 
 
-lemma sub_lt_succ_of_lt_succ {a b : ℕ} : a < (b + 1) → b - a < (b + 1) :=
+lemma nat.sub_lt_succ_of_lt_succ {a b : ℕ} : a < (nat.succ b) → b - a < (nat.succ b) :=
 begin
     intro h,
     cases a,
@@ -141,49 +140,91 @@ begin
     from nat.lt_trans ((nat.sub_lt_of_pos_le (nat.succ a) b (nat.zero_lt_succ a)) (nat.le_of_lt_succ h)) (nat.lt_succ_self b),
 end
 
-def ge_aux : Π (j : fin n) (i : fin m) (M : matrix (fin m) (fin n) α), (matrix (fin m) (fin n) α)
-|     ⟨k₂, h₂⟩  ⟨0, h₁⟩     M       := 
+@[simp] lemma nat.pred_lt_of_ne_zero {n : ℕ} : n ≠ 0 → nat.succ (nat.pred n) = n :=
+begin
+    intros h_nz,
+    apply nat.succ_pred_eq_of_pos,
+    have H₁, from @nat.eq_or_lt_of_le 0 n (nat.zero_le n),
+    cases H₁,
+    exfalso,
+    from h_nz (eq.symm H₁),
+    assumption,
+end
+
+lemma nat.pred_sub_lt {a b : ℕ} : b ≠ 0 → a < b → (nat.pred b) - a < b :=
+begin
+    intros h_n h,
+    rw ←nat.pred_lt_of_ne_zero h_n,
+    apply nat.sub_lt_succ_of_lt_succ,
+    simp[nat.pred_lt_of_ne_zero h_n],
+    from h,
+end
+
+lemma nat.lt_succ_of_succ_lt {a b : ℕ} : nat.succ a < b → a < nat.succ b :=
+begin
+    intros h,
+    have ha, from nat.lt_succ_self a,
+    have hb, from nat.lt_succ_self b,
+    apply nat.lt_trans ha,
+    apply nat.lt_trans,
+    swap,
+    from hb,
+    from h
+end
+
+lemma nat.pred_pred_sub_lt_of_lt : Π {a b : ℕ}, nat.succ a < b → (nat.pred b) - a - 1 < b :=
+begin
+    intros a b h,
+    have H₁, from @nat.sub_lt_succ_of_lt_succ (nat.succ a) (nat.pred b),
+    rw nat.pred_lt_of_ne_zero at H₁,
+    have H₂,
+    from H₁ h,
+    have H₃ : nat.pred b - nat.succ a = nat.pred b - a - 1,
+    refl,
+    rw ←H₃,
+    from H₂,
+    
+    intros h₁,
+    have H₂, from @nat.zero_lt_succ a,
+    have H₃, from nat.lt_trans H₂ h,
+    subst h₁,
+    from nat.not_lt_zero 0 H₃,
+end
+
+lemma nat.lt_succ_pred : Π {n : ℕ}, (n ≠ 0) → (nat.pred n) < n :=
+begin
+    intros n h,
+    have : (nat.pred n < nat.succ (nat.pred n)) = (nat.pred n < n),
+    congr,
+    from nat.pred_lt_of_ne_zero h,
+    rw ←this,
+    from nat.lt_succ_self (nat.pred n),
+end
+
+
+def ge_aux : Π (j : fin n) (i : fin m) (h_n : n ≠ 0) (h_m : m ≠ 0) (M : matrix (fin m) (fin n) α), (matrix (fin m) (fin n) α)
+|     ⟨k₂, h₂⟩  ⟨0, h₁⟩  h_n h_m    M       := 
         begin  -- If we're on the last row, all we need to do is improve the pivot if we can
             from if M ⟨0, h₁⟩ ⟨k₂, h₂⟩ ≠ 0 then 
                 begin
                     apply ge_aux_improvepivot,
-                    clear ge_aux,
-                    cases m, 
-                    exfalso,
-                    from nat.not_lt_zero 0 h₁,
+                    from ⟨nat.pred m, nat.pred_lt h_m⟩,
 
-                    from ⟨m, nat.lt_succ_self m⟩,
-
-                    clear ge_aux,
-                    cases n,
-                    exfalso,
-                    from nat.not_lt_zero k₂ h₂,
-
-                    constructor,
-
-                    from sub_lt_succ_of_lt_succ h₂,
-
+                    from ⟨(nat.pred n) - k₂, nat.pred_sub_lt h_n h₂⟩,
                     from M,
                 end
             else M,
         end
-|  ⟨0, h₂⟩  ⟨k₁+1, h₁⟩   M    := 
+|  ⟨0, h₂⟩  ⟨k₁+1, h₁⟩ h_n h_m   M    := 
         begin  -- If we're in the last column, all we need to do is eliminate that column
-            clear ge_aux,
-            cases m,
-            exfalso,
-            from nat.not_lt_zero (k₁+1) h₁,
 
-            cases n,
-            exfalso,
-            from nat.not_lt_zero 0 h₂,
+            -- have H₁, from @nat.sub_lt_succ_of_lt_succ k₁ (nat.pred m) (nat.lt_of_succ_lt h₁),
+            let toplefti : fin m := ⟨(nat.pred m)-k₁-1, nat.pred_pred_sub_lt_of_lt h₁⟩,
+            let topleftj : fin n := ⟨nat.pred n, nat.pred_lt h_n⟩,
 
-            let toplefti : fin (m+1) := ⟨m-k₁-1, sub_lt_succ_of_lt_succ h₁⟩,
-            let topleftj : fin (n+1) := ⟨n, nat.lt_succ_self n⟩,
+            let bottomrow : fin m := ⟨nat.pred m, nat.pred_lt h_m⟩,
 
-            let bottomrow : fin (m+1) := ⟨m, nat.lt_succ_self m⟩,
-
-            have M₁ : matrix (fin (nat.succ m)) (fin (nat.succ n)) α,
+            have M₁ : matrix (fin m) (fin n) α,
             apply ge_aux_findpivot bottomrow toplefti topleftj M,
 
             from if H₁ : (M₁ toplefti topleftj ≠ 0) then begin
@@ -200,24 +241,17 @@ def ge_aux : Π (j : fin n) (i : fin m) (M : matrix (fin m) (fin n) α), (matrix
                 repeat {assumption},
             end else M₁,
         end
-| ⟨k₂+1, h₂⟩  ⟨k₁+1, h₁⟩   M   := 
+| ⟨k₂+1, h₂⟩  ⟨k₁+1, h₁⟩ h_n h_m  M   := 
         begin
-            apply ge_aux;clear ge_aux,
+            apply ge_aux,
+            show matrix (fin m) (fin n) α,
 
-            show matrix _ _ α,
-            cases m,
-            exfalso,
-            from nat.not_lt_zero (k₁ + 1) h₁,
-            cases n,
-            exfalso,
-            from nat.not_lt_zero (k₂ + 1) h₂,
+            let toplefti : (fin m) := ⟨(nat.pred m)-k₁-1, nat.pred_pred_sub_lt_of_lt h₁⟩,
+            let topleftj : (fin n) := ⟨(nat.pred n)-k₂-1, nat.pred_pred_sub_lt_of_lt h₂⟩,
 
-            let toplefti : fin (m+1) := ⟨m-k₁-1, sub_lt_succ_of_lt_succ h₁⟩,
-            let topleftj : fin (n+1) := ⟨n-k₂-1, sub_lt_succ_of_lt_succ h₂⟩,
+            let bottomrow : fin (m) := ⟨nat.pred m, nat.pred_lt h_m⟩,
 
-            let bottomrow : fin (m+1) := ⟨m, nat.lt_succ_self m⟩,
-
-            have M₁ : matrix (fin (nat.succ m)) (fin (nat.succ n)) α,
+            have M₁ : matrix (fin m) (fin n) α,
             from ge_aux_findpivot bottomrow toplefti topleftj M,
 
             from if H₁ : (M₁ toplefti topleftj ≠ 0) then begin
@@ -236,84 +270,112 @@ def ge_aux : Π (j : fin n) (i : fin m) (M : matrix (fin m) (fin n) α), (matrix
                 repeat {assumption},
             end else M₁,
 
-
+            
             from ⟨k₂, nat.lt_of_succ_lt h₂⟩,
 
-            cases m,
-            exfalso,
-            from nat.not_lt_zero (k₁ + 1) h₁,
-            cases n,
-            exfalso,
-            from nat.not_lt_zero (k₂ + 1) h₂,
+            let toplefti : fin m := ⟨(nat.pred m)-k₁-1, nat.pred_pred_sub_lt_of_lt h₁⟩,
+            let topleftj : fin n := ⟨(nat.pred n)-k₂-1, nat.pred_pred_sub_lt_of_lt h₂⟩,
 
-            let toplefti : fin (m+1) := ⟨m-k₁-1, sub_lt_succ_of_lt_succ h₁⟩,
-            let topleftj : fin (n+1) := ⟨n-k₂-1, sub_lt_succ_of_lt_succ h₂⟩,
+            let bottomrow : fin m := ⟨nat.pred m, nat.pred_lt h_m⟩,
 
-            let bottomrow : fin (m+1) := ⟨m, nat.lt_succ_self m⟩,
-
-            have M₁ : matrix (fin (nat.succ m)) (fin (nat.succ n)) α,
+            have M₁ : matrix (fin m) (fin n) α,
             from ge_aux_findpivot bottomrow toplefti topleftj M,
 
             from if H₁ : (M₁ toplefti topleftj ≠ 0) 
             then ⟨k₁, nat.lt_of_succ_lt h₁⟩
             else ⟨k₁+1, h₁⟩,                
+            from h_n,
+            from h_m,
         end
 
 
 def gaussian_elimination (M : matrix (fin m) (fin n) α) : matrix (fin m) (fin n) α :=
 begin
-    cases m,
+    by_cases h_m : m = 0,
     from M,
-    cases n,
+    by_cases h_n : n = 0,
     from M,
 
+    have h₁, from nat.pred_lt_of_ne_zero h_m,
+    have h₂, from nat.pred_lt_of_ne_zero h_n,
+    
     apply ge_aux,
-    from ⟨n, nat.lt_succ_self n⟩,
-    from ⟨m, nat.lt_succ_self m⟩,
+    from ⟨nat.pred n, nat.lt_succ_pred h_n⟩,
+    from ⟨nat.pred m, nat.lt_succ_pred h_m⟩,
+    from h_n,
+    from h_m,
     from M,
 end
 
 
-theorem ge_aux_row_equivalent : Π (j : fin n) (i : fin m) (M : matrix (fin m) (fin n) α), row_equivalent M (ge_aux j i M)
-| ⟨0, j_is_lt⟩ ⟨0, i_is_lt⟩ M :=
+theorem ge_aux_row_equivalent : Π (j : fin n) (i : fin m) (h_n : n ≠ 0) (h_m : m ≠ 0) (M : matrix (fin m) (fin n) α), row_equivalent M (ge_aux j i h_n h_m M)
+| ⟨0, j_is_lt⟩ ⟨0, i_is_lt⟩ h_n h_m M :=
 begin
     simp[ge_aux],
     split_ifs,
     from row_equivalent.nil,
-    conv {
-        congr,
-        skip,
-        congr,
-        skip,
-    },
-    sorry,
-    -- apply ge_aux_row_equivalent,
+    apply row_equivalent.trans,
+
+    swap,
+    apply ge_aux_improvepivot_row_equivalent,
+    from row_equivalent.nil,
 end
-| _ _ _ := sorry
--- | ⟨i_val, j_is_lt⟩ ⟨j_val, i_is_lt⟩ M :=
--- begin
---     cases j_val; cases i_val,
+| ⟨j+1, j_is_lt⟩ ⟨0, i_is_lt⟩ h_n h_m M :=
+begin
+    simp[ge_aux],
+    split_ifs,
+    from row_equivalent.nil,
 
---     simp[ge_aux],
+    apply row_equivalent.trans,
+    swap,
+    apply ge_aux_improvepivot_row_equivalent,
+    from row_equivalent.nil,
+end
+| ⟨0, j_is_lt⟩ ⟨i+1, i_is_lt⟩ h_n h_m M :=
+begin
+    simp[ge_aux],
+    split_ifs,
+    apply ge_aux_findpivot_row_equivalent,
 
---     by_cases h : (M ⟨0, eq.rec i_is_lt nat.nat_zero_eq_zero⟩
---               ⟨0, eq.rec (eq.rec j_is_lt nat.nat_zero_eq_zero) nat.nat_zero_eq_zero⟩ =
---             0),
+    apply row_equivalent.trans,
+    show row_equivalent M (ge_aux_findpivot ⟨nat.pred m, _⟩ ⟨nat.pred m - i - 1, _⟩ ⟨nat.pred n, _⟩ M),
+    apply ge_aux_findpivot_row_equivalent,
+    apply row_equivalent.trans,
+    show row_equivalent _ (ge_aux_improvepivot ⟨nat.pred m - i - 1, _⟩ ⟨nat.pred n, _⟩
+          (ge_aux_findpivot ⟨nat.pred m, _⟩ ⟨nat.pred m - i - 1, _⟩ ⟨nat.pred n, _⟩ M)),
+    apply ge_aux_improvepivot_row_equivalent,
+    apply ge_aux_eliminatecolumn_row_equivalent,
+end
+| ⟨j + 1, j_is_lt⟩ ⟨i + 1, i_is_lt⟩ h_n h_m M := 
+begin
+    simp[ge_aux],
+    split_ifs,
+    apply row_equivalent.trans,
+    swap,
+    apply ge_aux_row_equivalent,
+    apply ge_aux_findpivot_row_equivalent,
 
---     simp[h],
---     from row_equivalent.nil,
---     simp[h],
---     apply row_reduction_step.ge_aux_improvepivot_row_equivalent,
-    
+    apply row_equivalent.trans,
+    show row_equivalent M (ge_aux_findpivot ⟨nat.pred m, _⟩ ⟨nat.pred m - i - 1, _⟩ ⟨nat.pred n - j - 1, _⟩ M),
+    apply ge_aux_findpivot_row_equivalent,
+    apply row_equivalent.trans,
+    show row_equivalent _  (ge_aux_improvepivot ⟨nat.pred m - i - 1, _⟩ ⟨nat.pred n - j - 1, _⟩
+             (ge_aux_findpivot ⟨nat.pred m, _⟩ ⟨nat.pred m - i - 1, _⟩ ⟨nat.pred n - j - 1, _⟩ M)),
+    apply ge_aux_improvepivot_row_equivalent,
+    apply row_equivalent.trans,
+    show row_equivalent _ (ge_aux_eliminatecolumn ⟨nat.pred m, _⟩ ⟨nat.pred m - i - 1, _⟩ ⟨nat.pred n - j - 1, _⟩
+          (ge_aux_improvepivot ⟨nat.pred m - i - 1, _⟩ ⟨nat.pred n - j - 1, _⟩
+             (ge_aux_findpivot ⟨nat.pred m, _⟩ ⟨nat.pred m - i - 1, _⟩ ⟨nat.pred n - j - 1, _⟩ M))),
+    apply ge_aux_eliminatecolumn_row_equivalent,
+    apply ge_aux_row_equivalent,
+end
 
---     simp[ge_aux],
---     by_cases h: (M ⟨0, eq.rec i_is_lt nat.nat_zero_eq_zero⟩ ⟨nat.succ i_val, j_is_lt⟩ = 0),
---     simp[h],
---     from row_equivalent.nil,
---     simp[h],
---     apply row_reduction_step.ge_aux_improvepivot_row_equivalent,
-
-    
--- end
-
-
+theorem gaussian_elimination.row_equivalent : Π (M : matrix (fin m) (fin n) α), row_equivalent M (gaussian_elimination M) :=
+begin
+    intros,
+    simp[gaussian_elimination],
+    split_ifs,
+    from row_equivalent.nil,
+    from row_equivalent.nil,
+    apply ge_aux_row_equivalent,
+end
