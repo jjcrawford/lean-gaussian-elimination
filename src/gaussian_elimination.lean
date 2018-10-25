@@ -56,9 +56,7 @@ inductive row_reduction_step : (fin m) → (fin n) → matrix (fin m) (fin n) α
 | eliminate : Π (i : fin m) (j : fin n) (M : matrix (fin m) (fin n) α) (i₀ : fin m) (h : M i j = 1), row_reduction_step i j M (ge_aux_eliminate i₀ i j M h)
 
 
-
-
-lemma ge_aux_findpivot_row_equivalent : Π (i : fin m) (i₀ : fin m) (j₀ : fin n) (M : matrix (fin m) (fin n) α), row_equivalent M (ge_aux_findpivot i i₀ j₀ M)
+def ge_aux_findpivot_row_equivalent : Π (i : fin m) (i₀ : fin m) (j₀ : fin n) (M : matrix (fin m) (fin n) α), row_equivalent M (ge_aux_findpivot i i₀ j₀ M)
 | ⟨0, h₀⟩   i₀ j₀ M := 
 begin 
     simp[ge_aux_findpivot],
@@ -74,7 +72,7 @@ end
 
 -- set_option pp.proofs true
 
-lemma ge_aux_improvepivot_row_equivalent : Π (i₀ : fin m) (j₀ : fin n) (M : matrix (fin m) (fin n) α), row_equivalent M (ge_aux_improvepivot i₀ j₀ M)
+def ge_aux_improvepivot_row_equivalent : Π (i₀ : fin m) (j₀ : fin n) (M : matrix (fin m) (fin n) α), row_equivalent M (ge_aux_improvepivot i₀ j₀ M)
 | i₀ j₀ M := 
 begin
     simp[ge_aux_improvepivot],
@@ -83,7 +81,7 @@ begin
     from row_equivalent.nil
 end
 
-lemma ge_aux_eliminate_row_equivalent : Π (i : fin m) (i₀ : fin m) (j₀ : fin n) (M : matrix (fin m) (fin n) α) (h : M i₀ j₀ = 1), row_equivalent M (ge_aux_eliminate i i₀ j₀ M h) 
+def ge_aux_eliminate_row_equivalent : Π (i : fin m) (i₀ : fin m) (j₀ : fin n) (M : matrix (fin m) (fin n) α) (h : M i₀ j₀ = 1), row_equivalent M (ge_aux_eliminate i i₀ j₀ M h) 
 | i i₀ j₀ M h :=
 begin
     unfold ge_aux_eliminate,
@@ -92,7 +90,7 @@ begin
     from row_equivalent.nil,
 end
 
-lemma ge_aux_eliminatecolumn_row_equivalent : Π (i : fin m) (i₀ : fin m) (j₀ : fin n) (M : matrix (fin m) (fin n) α), row_equivalent M (ge_aux_eliminatecolumn i i₀ j₀ M)
+def ge_aux_eliminatecolumn_row_equivalent : Π (i : fin m) (i₀ : fin m) (j₀ : fin n) (M : matrix (fin m) (fin n) α), row_equivalent M (ge_aux_eliminatecolumn i i₀ j₀ M)
 | ⟨0, h₀⟩ i₀ j₀ M :=
 begin
     unfold ge_aux_eliminatecolumn,
@@ -127,9 +125,9 @@ end
 
 -- Note that bytecode generation fails even more seriously here! (Because they choose a red underline?)
 -- def to_row_equivalent : Π {j : fin n} {i : fin m} {M N :  matrix (fin m) (fin n) α} (r : row_reduction_step i j M N), row_equivalent M N
--- | _ _ _ _ (findpivot i j M i₀) :=  @ge_aux_findpivot_row_equivalent m n α _ _ i₀ i j M
--- | _ _ _ _ (improvepivot i j M) :=  @ge_aux_improvepivot_row_equivalent m n α _ _ i j M
--- | _ _ _ _ (eliminate i j M i₀ h) := @ge_aux_eliminate_row_equivalent m n α _ _ i₀ i j M h
+-- | _ _ _ _ (row_reduction_step.findpivot i j M i₀) :=  @ge_aux_findpivot_row_equivalent m n α _ _ i₀ i j M
+-- | _ _ _ _ (row_reduction_step.improvepivot i j M) :=  @ge_aux_improvepivot_row_equivalent m n α _ _ i j M
+-- | _ _ _ _ (row_reduction_step.eliminate i j M i₀ h) := @ge_aux_eliminate_row_equivalent m n α _ _ i₀ i j M h
 
 
 lemma nat.sub_lt_succ_of_lt_succ {a b : ℕ} : a < (nat.succ b) → b - a < (nat.succ b) :=
@@ -288,27 +286,35 @@ def ge_aux : Π (j : fin n) (i : fin m) (h_n : n ≠ 0) (h_m : m ≠ 0) (M : mat
             from h_m,
         end
 
-
-def gaussian_elimination (M : matrix (fin m) (fin n) α) : matrix (fin m) (fin n) α :=
+def gaussian_elimination : Π {m n : ℕ}, matrix (fin m) (fin n) α → matrix (fin m) (fin n) α
+| 0 _ M := M
+| _ 0 M := M
+| (m+1) (n+1) M :=
 begin
-    by_cases h_m : m = 0,
-    from M,
-    by_cases h_n : n = 0,
-    from M,
-
-    have h₁, from nat.pred_lt_of_ne_zero h_m,
-    have h₂, from nat.pred_lt_of_ne_zero h_n,
-    
-    apply ge_aux,
-    from ⟨nat.pred n, nat.lt_succ_pred h_n⟩,
-    from ⟨nat.pred m, nat.lt_succ_pred h_m⟩,
-    from h_n,
-    from h_m,
-    from M,
+refine ge_aux ⟨ n, nat.lt_succ_self _ ⟩ ⟨ m, nat.lt_succ_self _ ⟩ _ _ M,
+sorry, sorry
 end
+ 
+-- def gaussian_elimination (M : matrix (fin m) (fin n) α) : matrix (fin m) (fin n) α :=
+-- begin
+--     by_cases h_m : m = 0,
+--     from M,
+--     by_cases h_n : n = 0,
+--     from M,
+
+--     have h₁, from nat.pred_lt_of_ne_zero h_m,
+--     have h₂, from nat.pred_lt_of_ne_zero h_n,
+    
+--     apply ge_aux,
+--     from ⟨nat.pred n, nat.lt_succ_pred h_n⟩,
+--     from ⟨nat.pred m, nat.lt_succ_pred h_m⟩,
+--     from h_n,
+--     from h_m,
+--     from M,
+-- end
 
 
-theorem ge_aux_row_equivalent : Π (j : fin n) (i : fin m) (h_n : n ≠ 0) (h_m : m ≠ 0) (M : matrix (fin m) (fin n) α), row_equivalent M (ge_aux j i h_n h_m M)
+def ge_aux_row_equivalent : Π (j : fin n) (i : fin m) (h_n : n ≠ 0) (h_m : m ≠ 0) (M : matrix (fin m) (fin n) α), row_equivalent M (ge_aux j i h_n h_m M)
 | ⟨0, j_is_lt⟩ ⟨0, i_is_lt⟩ h_n h_m M :=
 begin
     simp[ge_aux],
@@ -370,11 +376,12 @@ begin
     apply ge_aux_row_equivalent,
 end
 
-theorem gaussian_elimination.row_equivalent : Π (M : matrix (fin m) (fin n) α), row_equivalent M (gaussian_elimination M) :=
+def gaussian_elimination.row_equivalent : Π (M : matrix (fin m) (fin n) α), row_equivalent M (gaussian_elimination M) :=
 begin
     intros,
+    cases m;cases n;
     simp[gaussian_elimination],
-    split_ifs,
+    from row_equivalent.nil,
     from row_equivalent.nil,
     from row_equivalent.nil,
     apply ge_aux_row_equivalent,

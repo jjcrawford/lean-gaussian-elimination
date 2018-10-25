@@ -31,8 +31,6 @@ structure row_equivalent_step (M N : matrix (fin m) (fin n) α) :=
 (implements : matrix.mul (elem.to_matrix) M = N)
 
 
--- #exit
-
 @[simp] lemma mul_scale_scaled {i : fin m} {j : fin n} {s : α} {h : s ≠ 0} {M : matrix (fin m) (fin n) α} : 
   (matrix.mul (elementary.scale i s h).to_matrix M) i j = s * M i j :=
 begin
@@ -218,7 +216,7 @@ begin
 end
 
 
-lemma row_equivalent_step.of_elementary : 
+def row_equivalent_step.of_elementary : 
   Π {M : matrix (fin m) (fin n) α} (e : elementary α m), row_equivalent_step M ((e.to_matrix).mul M) :=
 begin
   intros,
@@ -227,7 +225,7 @@ begin
   refl}
 end
 
-lemma row_equivalent_step.of_elementary_apply : 
+def row_equivalent_step.of_elementary_apply : 
   Π {M : matrix (fin m) (fin n) α} (e : elementary α m), row_equivalent_step M (e.apply M) :=
 begin
   intros,
@@ -334,4 +332,3 @@ begin
   from r₀,
   from row_equivalent.cons (h₃ r₀) h₂,
 end
-
