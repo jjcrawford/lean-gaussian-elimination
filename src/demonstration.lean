@@ -10,14 +10,19 @@ variable [division_ring α]
 variable [decidable_eq α]
 
 
-def test1 : matrix (fin 2) (fin 3) ℚ := -- Just like our old friend fast_matrix!
-matrix.bang  ![![ 1 , 1,  5 ], 
+def test1 : matrix (fin 2) (fin 3) ℚ := 
+matrix.bang  ![![ 3 , 1,  5 ], 
                ![ 2 , 1,  2 ]]
 
-def test2 : matrix (fin 3) (fin 4) ℚ := -- Just like our old friend fast_matrix!
+def test2 : matrix (fin 3) (fin 4) ℚ :=
 matrix.bang  ![![ 1 , 1,  5,  4 ], 
                ![ 0 , 1,  2,  5 ],
                ![ 2 , 3,  2,  5 ]]
+
+def test3 : matrix (fin 3) (fin 3) ℚ :=
+matrix.bang  ![![ 3, 4, 2 ],
+               ![ 5, 2, 1 ],
+               ![ 8, 9, 4 ]]
 
 
 -- and now, the finale:
@@ -25,11 +30,13 @@ example : row_equivalent test1 (gaussian_elimination test1) := gaussian_eliminat
 #eval test1
 #eval gaussian_elimination test1
 #check (gaussian_elimination.row_equivalent test1).matrix_implements
-def test1_mat : matrix (fin 2) (fin 2) ℚ := (gaussian_elimination.row_equivalent test1).to_matrix
-#eval (gaussian_elimination.row_equivalent test1).to_matrix -- axiom of choice strikes again?
-#print axioms gaussian_elimination
-
+#eval (gaussian_elimination.row_equivalent test1).to_matrix
 
 example : row_equivalent test2 (gaussian_elimination test2) := gaussian_elimination.row_equivalent test2
 #eval test2
-#eval gaussian_elimination test2
+--#eval gaussian_elimination test2
+
+example : row_equivalent test3 (gaussian_elimination test3) := gaussian_elimination.row_equivalent test3
+#eval test3
+#eval gaussian_elimination test3
+#eval (gaussian_elimination.row_equivalent test1).to_matrix

@@ -31,12 +31,14 @@ structure row_equivalent_step (M N : matrix (fin m) (fin n) α) :=
 (implements : matrix.mul (elem.to_matrix) M = N)
 
 
+-- #exit
+
 @[simp] lemma mul_scale_scaled {i : fin m} {j : fin n} {s : α} {h : s ≠ 0} {M : matrix (fin m) (fin n) α} : 
   (matrix.mul (elementary.scale i s h).to_matrix M) i j = s * M i j :=
 begin
   dsimp [matrix.mul],
   dsimp [elementary.to_matrix],
-  simp,
+  simp, -- ⊢ finset.sum finset.univ (λ (x : fin m), ite (i = x) (s * M x j) 0) = s * M i j
   rw finset.sum_ite_zero,
 end
 
@@ -218,22 +220,14 @@ end
 
 def row_equivalent_step.of_elementary : 
   Π {M : matrix (fin m) (fin n) α} (e : elementary α m), row_equivalent_step M ((e.to_matrix).mul M) :=
-begin
-  intros,
-  cases e; 
-  {constructor,
-  refl}
-end
+    λ _ e, ⟨e, by refl⟩
 
 def row_equivalent_step.of_elementary_apply : 
   Π {M : matrix (fin m) (fin n) α} (e : elementary α m), row_equivalent_step M (e.apply M) :=
 begin
   intros,
-  have H₃ : row_equivalent_step M (elementary.apply e M) = row_equivalent_step M (matrix.mul (elementary.to_matrix e) M),
-  congr,
-  from eq.symm(@elementary.mul_eq_apply m n α _ _ M e),
-  rw H₃,
-  from @row_equivalent_step.of_elementary m n α _ _ M e,
+  rw ←elementary.mul_eq_apply,
+  apply row_equivalent_step.of_elementary
 end
 
 def row_equivalent_step.to_matrix : 
@@ -332,3 +326,4 @@ begin
   from r₀,
   from row_equivalent.cons (h₃ r₀) h₂,
 end
+
